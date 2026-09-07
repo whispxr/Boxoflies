@@ -132,12 +132,12 @@ const SCREENS = {
   setup() {
     const card = el("div", { class: "card" }, el("h1", { text: "Box of Lies" }));
 
-    const nameInput = el("input", { type: "text", placeholder: "Nombre del jugador" });
+    const nameInput = el("input", { type: "text", placeholder: "Player name" });
     nameInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { addPlayer(nameInput.value); nameInput.value = ""; }
     });
     const addBtn = el("button", {
-      class: "btn blue", text: "Agregar jugador",
+      class: "btn blue", text: "Add player",
       onclick: () => { addPlayer(nameInput.value); nameInput.value = ""; nameInput.focus(); },
     });
     card.appendChild(nameInput);
@@ -153,20 +153,20 @@ const SCREENS = {
     card.appendChild(list);
 
     if (S.players.length < 3) {
-      card.appendChild(el("p", { text: "Necesitás al menos 3 jugadores para poder jugar." }));
+      card.appendChild(el("p", { text: "You need at least 3 players to start." }));
     }
 
     if (EXOTIC_IMAGES.length === 0) {
-      card.appendChild(el("p", { text: "No hay imágenes cargadas: metelas en la carpeta images/ y corré `node build-images.js`." }));
+      card.appendChild(el("p", { text: "No images loaded: drop some into the images/ folder and run `node build-images.js`." }));
     }
 
     const roundsInput = el("input", { type: "number", min: "1", value: String(S.totalRounds) });
-    card.appendChild(el("p", { text: "Cantidad de rondas:" }));
+    card.appendChild(el("p", { text: "Number of rounds:" }));
     card.appendChild(roundsInput);
 
     const canStart = S.players.length >= 3 && EXOTIC_IMAGES.length > 0;
     const startBtn = el("button", {
-      class: "btn lime", text: "Empezar partida",
+      class: "btn lime", text: "Start game",
       onclick: () => {
         const rounds = parseInt(roundsInput.value, 10);
         if (canStart && rounds >= 1) startGame(rounds);
@@ -181,54 +181,54 @@ const SCREENS = {
   "pass-active"() {
     const name = S.players[S.activeIndex].name;
     return el("div", { class: "card pass-box" },
-      el("span", { class: "tag", text: `Ronda ${S.round + 1} de ${S.totalRounds}` }),
-      el("p", { text: "Pasale el dispositivo a" }),
+      el("span", { class: "tag", text: `Round ${S.round + 1} of ${S.totalRounds}` }),
+      el("p", { text: "Pass the device to" }),
       el("div", { class: "name", text: name }),
-      el("button", { class: "btn pink", text: "Ya lo tengo, mostrame la imagen", onclick: confirmPassActive })
+      el("button", { class: "btn pink", text: "Got it, show me the image", onclick: confirmPassActive })
     );
   },
 
   "active-image"() {
     const img = el("img", { class: "active-img", src: S.currentImage.url, alt: S.currentImage.alt });
     return el("div", { class: "card" },
-      el("h2", { text: "Solo vos ves esto 👀" }),
+      el("h2", { text: "Only you see this 👀" }),
       img,
-      el("p", { text: "Describí este objeto en voz alta para el resto. Podés decir la verdad o mentir. Cuando termines, marcá qué hiciste:" }),
-      el("button", { class: "btn lime", text: "Dije la verdad", onclick: () => markTruth(true) }),
-      el("button", { class: "btn red", text: "Mentí", onclick: () => markTruth(false) })
+      el("p", { text: "Describe this object out loud for everyone else. You can tell the truth or lie. When you're done, mark what you did:" }),
+      el("button", { class: "btn lime", text: "I told the truth", onclick: () => markTruth(true) }),
+      el("button", { class: "btn red", text: "I lied", onclick: () => markTruth(false) })
     );
   },
 
   "pass-vote"() {
     const voter = S.players[S.voters[S.voteCursor]].name;
     return el("div", { class: "card pass-box" },
-      el("p", { text: "Pasale el dispositivo a" }),
+      el("p", { text: "Pass the device to" }),
       el("div", { class: "name", text: voter }),
-      el("button", { class: "btn blue", text: "Ya lo tengo, quiero votar", onclick: confirmPassVote })
+      el("button", { class: "btn blue", text: "Got it, I want to vote", onclick: confirmPassVote })
     );
   },
 
   vote() {
     const activeName = S.players[S.activeIndex].name;
     return el("div", { class: "card" },
-      el("h2", { text: `¿${activeName} dijo la verdad o mintió?` }),
-      el("button", { class: "btn lime", text: "Dijo la VERDAD", onclick: () => submitVote(true) }),
-      el("button", { class: "btn red", text: "MINTIÓ", onclick: () => submitVote(false) })
+      el("h2", { text: `Did ${activeName} tell the truth or lie?` }),
+      el("button", { class: "btn lime", text: "Told the TRUTH", onclick: () => submitVote(true) }),
+      el("button", { class: "btn red", text: "LIED", onclick: () => submitVote(false) })
     );
   },
 
   suspense() {
     return el("div", { class: "card pass-box" },
-      el("p", { text: "Ya votaron todos." }),
-      el("div", { class: "name", text: "¿Mintió o dijo la verdad?" }),
-      el("button", { class: "btn pink", text: "🥁 Revelar respuesta", onclick: revealResult })
+      el("p", { text: "Everyone has voted." }),
+      el("div", { class: "name", text: "Did they lie or tell the truth?" }),
+      el("button", { class: "btn pink", text: "🥁 Reveal answer", onclick: revealResult })
     );
   },
 
   reveal() {
     const active = S.players[S.activeIndex];
     const card = el("div", { class: "card" },
-      el("h2", { text: `${active.name} ${S.activeTruth ? "dijo la verdad" : "mintió"}` }),
+      el("h2", { text: `${active.name} ${S.activeTruth ? "told the truth" : "lied"}` }),
       el("img", { class: "reveal-img", src: S.currentImage.url, alt: S.currentImage.alt })
     );
 
@@ -237,17 +237,17 @@ const SCREENS = {
       const p = S.players[v.index];
       const correct = v.guessTruth === S.activeTruth;
       list.appendChild(el("li", { class: `vote-result ${correct ? "correct" : "wrong"}` },
-        el("span", { text: `${p.name}: dijo "${v.guessTruth ? "verdad" : "mentira"}"` }),
+        el("span", { text: `${p.name}: said "${v.guessTruth ? "truth" : "lie"}"` }),
         el("span", { text: correct ? "✔ +1" : "✘" })
       ));
     }
     card.appendChild(list);
 
     if (S.lastBonus) {
-      card.appendChild(el("p", { text: `${active.name} engañó a la mayoría: +1 punto bono.` }));
+      card.appendChild(el("p", { text: `${active.name} fooled the majority: +1 bonus point.` }));
     }
 
-    card.appendChild(el("h2", { text: "Puntajes" }));
+    card.appendChild(el("h2", { text: "Scores" }));
     const scores = el("ul", { class: "scoreboard" });
     S.players.forEach((p) => scores.appendChild(el("li", {},
       el("span", { text: p.name }), el("span", { text: String(p.score) })
@@ -257,7 +257,7 @@ const SCREENS = {
     const isLast = S.round + 1 >= S.totalRounds;
     card.appendChild(el("button", {
       class: "btn pink",
-      text: isLast ? "Ver podio final" : "Siguiente ronda",
+      text: isLast ? "See final podium" : "Next round",
       onclick: nextRound,
     }));
     return card;
@@ -265,14 +265,14 @@ const SCREENS = {
 
   podium() {
     const ranked = [...S.players].sort((a, b) => b.score - a.score);
-    const card = el("div", { class: "card" }, el("h1", { text: "🏆 Podio 🏆" }));
+    const card = el("div", { class: "card" }, el("h1", { text: "🏆 Podium 🏆" }));
     ranked.forEach((p, i) => {
       card.appendChild(el("div", { class: `podium-item ${i === 0 ? "podium-1" : ""}` },
         el("span", { text: `${i + 1}. ${p.name}` }),
         el("span", { text: String(p.score) })
       ));
     });
-    card.appendChild(el("button", { class: "btn lime", text: "Jugar de nuevo", onclick: resetGame }));
+    card.appendChild(el("button", { class: "btn lime", text: "Play again", onclick: resetGame }));
     return card;
   },
 };
