@@ -19,6 +19,7 @@ body {
   font-weight: 900;
   color: var(--ink);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 16px;
@@ -27,6 +28,13 @@ body {
 #app {
   width: 100%;
   max-width: 480px;
+}
+
+.footer {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  text-align: center;
 }
 
 .card {
@@ -196,6 +204,12 @@ input[type="text"], input[type="number"], select {
   z-index: 20;
 }
 .help-card { max-width: 480px; max-height: 80vh; overflow-y: auto; }
+
+.welcome-logo {
+  display: block;
+  max-width: 160px;
+  margin: 0 auto 16px;
+}
 
 .context-box {
   background: var(--pink);

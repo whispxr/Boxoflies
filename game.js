@@ -20,6 +20,7 @@ const S = {
   rerollsLeft: 0, // se reinicia cada ronda en startRound()
   suggestedContext: null, // sugerencia privada actual; null = ninguna elegida aún
   showHelp: false,
+  showWelcome: true, // popup de bienvenida, visible al abrir la página
 };
 
 const MAX_REROLLS = 3;
@@ -53,11 +54,24 @@ function helpOverlay() {
   );
 }
 
+function closeWelcome() { S.showWelcome = false; render(); }
+
+function welcomeOverlay() {
+  return el("div", { class: "help-overlay" },
+    el("div", { class: "card help-card" },
+      el("img", { class: "welcome-logo", src: "FenUchile.jpg", alt: "FEN logo" }),
+      el("p", { text: "The International Office thanks you for taking part in the Let's Chat sessions, hosted by Fernanda — who puts so much dedication and love into making sure you have a great time. XOXO <3" }),
+      el("button", { class: "btn pink", text: "Close", onclick: closeWelcome })
+    )
+  );
+}
+
 function render() {
   clear(app);
   app.appendChild(SCREENS[S.screen]());
   app.appendChild(el("button", { class: "help-btn", text: "❗", onclick: toggleHelp }));
   if (S.showHelp) app.appendChild(helpOverlay());
+  if (S.showWelcome) app.appendChild(welcomeOverlay());
 }
 
 // ---------- mazo de imágenes sin repetir ----------
