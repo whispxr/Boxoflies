@@ -17,7 +17,12 @@ const S = {
   voteMode: "individual", // "individual" | "group"
   pendingGroupTruthCount: 0,
   groupVoteCounts: null, // {truthCount, lieCount, correct}
+  rerollsLeft: 0, // se reinicia cada ronda en startRound()
+  suggestedContext: null, // sugerencia privada actual; null = ninguna elegida aún
+  showHelp: false,
 };
+
+const MAX_REROLLS = 3;
 
 // ---------- helpers de DOM ----------
 function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
@@ -33,9 +38,26 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+function toggleHelp() { S.showHelp = !S.showHelp; render(); }
+
+function helpOverlay() {
+  return el("div", { class: "help-overlay" },
+    el("div", { class: "card help-card" },
+      el("h2", { text: "How to play" }),
+      el("p", { text: "Add at least 3 players, pick how many rounds and a voting mode, then start." }),
+      el("p", { text: "Each round, the active player secretly sees an image, then describes it out loud to everyone else — truthfully or as a lie. They can reroll the image (up to 3 times) or use \"Suggest a context\" for a fake backstory to help lie convincingly." }),
+      el("p", { text: "Everyone else then guesses whether the active player told the truth or lied, either one by one (pass the device) or all at once by a show of hands (group mode)." }),
+      el("p", { text: "Guess right and you score a point. If the active player fools the majority, they get a bonus point instead." }),
+      el("button", { class: "btn pink", text: "Got it", onclick: toggleHelp })
+    )
+  );
+}
+
 function render() {
   clear(app);
   app.appendChild(SCREENS[S.screen]());
+  app.appendChild(el("button", { class: "help-btn", text: "❗", onclick: toggleHelp }));
+  if (S.showHelp) app.appendChild(helpOverlay());
 }
 
 // ---------- mazo de imágenes sin repetir ----------
@@ -80,11 +102,25 @@ function startRound() {
   S.voters = S.players.map((_, i) => i).filter((i) => i !== S.activeIndex);
   S.voteCursor = 0;
   S.votes = [];
+  S.rerollsLeft = MAX_REROLLS;
+  S.suggestedContext = null;
   S.screen = "pass-active";
   render();
 }
 
 function confirmPassActive() { S.screen = "active-image"; render(); }
+
+function rerollImage() {
+  if (S.rerollsLeft <= 0) return;
+  S.rerollsLeft--;
+  S.currentImage = drawImage();
+  render();
+}
+
+function suggestContext() {
+  S.suggestedContext = FAKE_CONTEXTS[Math.floor(Math.random() * FAKE_CONTEXTS.length)];
+  render();
+}
 
 function markTruth(saidTruth) {
   S.activeTruth = saidTruth;
@@ -217,9 +253,23 @@ const SCREENS = {
 
   "active-image"() {
     const img = el("img", { class: "active-img", src: S.currentImage.url, alt: S.currentImage.alt });
+    const rerollBtn = el("button", { class: "btn blue", text: "Reroll image", onclick: rerollImage });
+    if (S.rerollsLeft <= 0) rerollBtn.setAttribute("disabled", "true");
+
+    const contextBox = el("div", {
+      class: "context-box",
+      text: S.suggestedContext || "Hit reroll for a random fake description to help you lie.",
+    });
+    const contextBtn = el("button", { class: "btn blue", text: "Reroll context", onclick: suggestContext });
+
     return el("div", { class: "card" },
       el("h2", { text: "Only you see this 👀" }),
       img,
+      el("span", { class: "tag", text: `Rerolls left: ${S.rerollsLeft}/${MAX_REROLLS}` }),
+      rerollBtn,
+      el("p", { text: "Need a lie? This is a fake description to help you make one up. Only you see this." }),
+      contextBox,
+      contextBtn,
       el("p", { text: "Describe this object out loud for everyone else. You can tell the truth or lie. When you're done, mark what you did:" }),
       el("button", { class: "btn lime", text: "I told the truth", onclick: () => markTruth(true) }),
       el("button", { class: "btn red", text: "I lied", onclick: () => markTruth(false) })

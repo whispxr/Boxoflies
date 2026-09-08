@@ -24,6 +24,7 @@ const sandbox = {
     createTextNode: (t) => ({ text: t }),
   },
   EXOTIC_IMAGES: Array.from({ length: 5 }, (_, i) => ({ url: "img" + i, alt: "alt" + i })),
+  FAKE_CONTEXTS: ["ctx0", "ctx1", "ctx2"],
   Math,
   console,
 };
@@ -37,6 +38,8 @@ this.startGame = startGame; this.confirmPassActive = confirmPassActive;
 this.markTruth = markTruth; this.confirmPassVote = confirmPassVote;
 this.submitVote = submitVote; this.revealResult = revealResult; this.nextRound = nextRound;
 this.resetGame = resetGame; this.drawImage = drawImage; this.computeGroupScores = computeGroupScores;
+this.rerollImage = rerollImage;
+this.suggestContext = suggestContext;
 `;
 vm.runInContext(src, sandbox);
 
@@ -96,6 +99,31 @@ assert.strictEqual(S.lastBonus, false, "mayoría acierta en modo grupal no da bo
 assert.strictEqual(S.players[2].score, 0, "Cami (activa) no gana nada: la mayoría acertó, no la engañó");
 assert.strictEqual(S.players[0].score, 1, "Ana suma +1 por acierto grupal (0 + 1)");
 assert.strictEqual(S.players[1].score, 3, "Beto suma +1 por acierto grupal (2 + 1)");
+
+// --- reroll de imagen: máximo 3 por ronda, se reinicia cada ronda ---
+sandbox.resetGame();
+sandbox.startGame(2);
+sandbox.confirmPassActive();
+assert.strictEqual(S.rerollsLeft, 3, "cada ronda arranca con 3 rerolls");
+sandbox.rerollImage();
+sandbox.rerollImage();
+sandbox.rerollImage();
+assert.strictEqual(S.rerollsLeft, 0, "3 rerolls consumidos -> 0 restantes");
+sandbox.rerollImage(); // no debería bajar de 0 ni volver a dibujar
+assert.strictEqual(S.rerollsLeft, 0, "no se puede rerollear más allá del límite");
+
+// --- suggest context: aleatorio de FAKE_CONTEXTS, se reinicia por ronda ---
+assert.strictEqual(S.suggestedContext, null, "sin sugerencia al empezar la ronda");
+sandbox.suggestContext();
+assert.ok(sandbox.FAKE_CONTEXTS.includes(S.suggestedContext), "suggestContext elige uno de FAKE_CONTEXTS");
+
+sandbox.markTruth(true);
+S.pendingGroupTruthCount = S.voters.length; // voteMode sigue en "group" desde el bloque anterior
+S.screen = "suspense";
+sandbox.revealResult();
+sandbox.nextRound();
+assert.strictEqual(S.rerollsLeft, 3, "el contador de rerolls se reinicia en la siguiente ronda");
+assert.strictEqual(S.suggestedContext, null, "la sugerencia se reinicia en la siguiente ronda");
 
 // --- mazo de imágenes: no debería repetir dentro de una vuelta completa ---
 S.imagePool = []; // fuerza a arrancar una vuelta fresca en el próximo draw
