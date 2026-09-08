@@ -14,6 +14,9 @@ const S = {
   voteCursor: 0,
   votes: [], // {index, guessTruth}
   lastBonus: false,
+  voteMode: "individual", // "individual" | "group"
+  pendingGroupTruthCount: 0,
+  groupVoteCounts: null, // {truthCount, lieCount, correct}
 };
 
 // ---------- helpers de DOM ----------
@@ -85,7 +88,8 @@ function confirmPassActive() { S.screen = "active-image"; render(); }
 
 function markTruth(saidTruth) {
   S.activeTruth = saidTruth;
-  S.screen = S.voters.length === 0 ? (computeScores(), "reveal") : "pass-vote";
+  if (S.voters.length === 0) { computeScores(); S.screen = "reveal"; }
+  else S.screen = S.voteMode === "group" ? "group-vote" : "pass-vote";
   render();
 }
 
@@ -99,7 +103,8 @@ function submitVote(guessTruth) {
 }
 
 function revealResult() {
-  computeScores();
+  if (S.voteMode === "group") computeGroupScores(S.pendingGroupTruthCount);
+  else computeScores();
   S.screen = "reveal";
   render();
 }
@@ -112,6 +117,18 @@ function computeScores() {
   }
   S.lastBonus = S.voters.length > 0 && wrong > S.voters.length / 2;
   if (S.lastBonus) S.players[S.activeIndex].score += 1;
+}
+
+// Modo grupal: no se sabe quién votó qué, solo cuántos por cada opción.
+// Mayoría acierta -> todos los votantes suman 1. Mayoría engañada -> bono al activo (igual que en modo individual).
+function computeGroupScores(truthCount) {
+  const total = S.voters.length;
+  const lieCount = total - truthCount;
+  const wrong = S.activeTruth ? lieCount : truthCount;
+  S.lastBonus = total > 0 && wrong > total / 2;
+  if (S.lastBonus) S.players[S.activeIndex].score += 1;
+  else for (const idx of S.voters) S.players[idx].score += 1;
+  S.groupVoteCounts = { truthCount, lieCount, correct: total - wrong };
 }
 
 function nextRound() {
@@ -164,6 +181,16 @@ const SCREENS = {
     card.appendChild(el("p", { text: "Number of rounds:" }));
     card.appendChild(roundsInput);
 
+    const modeSelect = el("select", {
+      onchange: (e) => { S.voteMode = e.target.value; },
+    },
+      el("option", { value: "individual", text: "One by one (pass the device)" }),
+      el("option", { value: "group", text: "Group (show of hands)" })
+    );
+    modeSelect.value = S.voteMode;
+    card.appendChild(el("p", { text: "Voting mode:" }));
+    card.appendChild(modeSelect);
+
     const canStart = S.players.length >= 3 && EXOTIC_IMAGES.length > 0;
     const startBtn = el("button", {
       class: "btn lime", text: "Start game",
@@ -208,6 +235,35 @@ const SCREENS = {
     );
   },
 
+  "group-vote"() {
+    const total = S.voters.length;
+    const card = el("div", { class: "card" },
+      el("h2", { text: "Group vote (show of hands)" }),
+      el("p", { text: `${total} people are voting. Count how many hands went up for each answer.` }),
+      el("p", { text: "How many said they told the TRUTH?" })
+    );
+
+    const truthInput = el("input", { type: "number", min: "0", max: String(total), value: "0" });
+    const lieDisplay = el("p", { text: `Said LIE: ${total}` });
+    const clamp = (v) => Math.min(total, Math.max(0, isNaN(v) ? 0 : v));
+    truthInput.addEventListener("input", () => {
+      const v = clamp(parseInt(truthInput.value, 10));
+      lieDisplay.textContent = `Said LIE: ${total - v}`;
+    });
+    card.appendChild(truthInput);
+    card.appendChild(lieDisplay);
+
+    card.appendChild(el("button", {
+      class: "btn pink", text: "Confirm votes",
+      onclick: () => {
+        S.pendingGroupTruthCount = clamp(parseInt(truthInput.value, 10));
+        S.screen = "suspense";
+        render();
+      },
+    }));
+    return card;
+  },
+
   vote() {
     const activeName = S.players[S.activeIndex].name;
     return el("div", { class: "card" },
@@ -232,16 +288,23 @@ const SCREENS = {
       el("img", { class: "reveal-img", src: S.currentImage.url, alt: S.currentImage.alt })
     );
 
-    const list = el("ul", { class: "scoreboard" });
-    for (const v of S.votes) {
-      const p = S.players[v.index];
-      const correct = v.guessTruth === S.activeTruth;
-      list.appendChild(el("li", { class: `vote-result ${correct ? "correct" : "wrong"}` },
-        el("span", { text: `${p.name}: said "${v.guessTruth ? "truth" : "lie"}"` }),
-        el("span", { text: correct ? "✔ +1" : "✘" })
-      ));
+    if (S.voteMode === "group" && S.groupVoteCounts) {
+      const c = S.groupVoteCounts;
+      card.appendChild(el("p", {
+        text: `Group vote: ${c.truthCount} said "truth", ${c.lieCount} said "lie" — ${c.correct} of ${S.voters.length} guessed correctly.`,
+      }));
+    } else {
+      const list = el("ul", { class: "scoreboard" });
+      for (const v of S.votes) {
+        const p = S.players[v.index];
+        const correct = v.guessTruth === S.activeTruth;
+        list.appendChild(el("li", { class: `vote-result ${correct ? "correct" : "wrong"}` },
+          el("span", { text: `${p.name}: said "${v.guessTruth ? "truth" : "lie"}"` }),
+          el("span", { text: correct ? "✔ +1" : "✘" })
+        ));
+      }
+      card.appendChild(list);
     }
-    card.appendChild(list);
 
     if (S.lastBonus) {
       card.appendChild(el("p", { text: `${active.name} fooled the majority: +1 bonus point.` }));

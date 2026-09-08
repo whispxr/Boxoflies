@@ -36,7 +36,7 @@ this.S = S; this.addPlayer = addPlayer; this.removePlayer = removePlayer;
 this.startGame = startGame; this.confirmPassActive = confirmPassActive;
 this.markTruth = markTruth; this.confirmPassVote = confirmPassVote;
 this.submitVote = submitVote; this.revealResult = revealResult; this.nextRound = nextRound;
-this.resetGame = resetGame; this.drawImage = drawImage;
+this.resetGame = resetGame; this.drawImage = drawImage; this.computeGroupScores = computeGroupScores;
 `;
 vm.runInContext(src, sandbox);
 
@@ -79,6 +79,23 @@ sandbox.submitVote(true); // Cami falla también
 sandbox.revealResult();
 assert.strictEqual(S.lastBonus, true, "mayoría equivocada da bono al activo");
 assert.strictEqual(S.players[1].score, 2, "Beto: 1 de ronda 0 (acertó) + 1 de bono en ronda 1");
+
+sandbox.nextRound();
+// Ronda 2: activo = 2 % 3 = Cami. Modo grupal.
+assert.strictEqual(S.activeIndex, 2, "ronda 2 -> activo Cami");
+S.voteMode = "group";
+sandbox.confirmPassActive();
+sandbox.markTruth(true); // Cami dice la verdad
+assert.strictEqual(S.screen, "group-vote", "modo grupal salta directo a group-vote, sin pasar el dispositivo");
+
+// Votantes: Ana(0) y Beto(1). Ambos aciertan (dicen "verdad") -> mayoría acierta -> cada votante +1.
+S.pendingGroupTruthCount = 2;
+S.screen = "suspense";
+sandbox.revealResult();
+assert.strictEqual(S.lastBonus, false, "mayoría acierta en modo grupal no da bono al activo");
+assert.strictEqual(S.players[2].score, 0, "Cami (activa) no gana nada: la mayoría acertó, no la engañó");
+assert.strictEqual(S.players[0].score, 1, "Ana suma +1 por acierto grupal (0 + 1)");
+assert.strictEqual(S.players[1].score, 3, "Beto suma +1 por acierto grupal (2 + 1)");
 
 // --- mazo de imágenes: no debería repetir dentro de una vuelta completa ---
 S.imagePool = []; // fuerza a arrancar una vuelta fresca en el próximo draw
